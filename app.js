@@ -1,5 +1,6 @@
 var app = require('express.io')()
 var net = require('net');
+var fs = require('fs');
 var telnet = require('./lib/telnet.js');
 
 	var client = new net.Socket();
@@ -22,23 +23,21 @@ var accountset = false;
 			console.log(ret.data.toString());
 			if (!logined) {
 				if (ret.data[ret.data.length-1] == 0x08) {
-					client.write('j');
-					client.write('y');
-					client.write('b');
-					client.write('e');
-					client.write('s');
-					client.write('t');
-					client.write('\r');
-					accountset = true;
+					fs.readFile('acc','utf8',function(err,data){
+						for (i=0; i<data.length; i++) {
+							client.write(data[i]);
+						}
+						client.write('\r');
+						accountset = true;
+					});
 				}
 				if (accountset && ret.data[ret.data.length-1] == 0x20) {
-					client.write('3');
-					client.write('0');
-					client.write('3');
-					client.write('2');
-					client.write('3');
-					client.write('1');
-					client.write('\r');
+					fs.readFile('pass','utf8',function(err,data){
+						for (i=0; i<data.length; i++) {
+							client.write(data[i]);
+						}
+						client.write('\r');
+					});
 				}
 			}
 		}
