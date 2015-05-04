@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<head><meta charset='UTF-8'>
+</head><body>
+
+<script src='//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js'></script>
+<script src="socket.io/socket.io.js"></script>
+<script>
+io = io.connect()
+
+// Emit ready event.
+io.emit('ready') 
+
+// Listen for the talk event.
+io.on('talk', function(data) {
+  //  alert(data.message)
+})  
+
+</script>
+</body></html>
