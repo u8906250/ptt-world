@@ -2,8 +2,8 @@ var app = require('express.io')()
 var fs = require('fs');
 var ptt = require('./lib/ptt.js');
 
-var user = fs.readFileSync('user','utf8');
-var pass = fs.readFileSync('pass','utf8');
+var user = fs.readFileSync('user','utf8').trim();
+var pass = fs.readFileSync('pass','utf8').trim();
 
 if (user !== undefined && pass !== undefined) {
 	ptt.login (user,pass);
