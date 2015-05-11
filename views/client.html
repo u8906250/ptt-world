@@ -2,6 +2,17 @@
 <head><meta charset='UTF-8'>
 </head><body>
 
+login ptt.cc
+<form id="login">
+username:<br>
+<input type="text" name="user">
+<br>
+password:<br>
+<input type="password" name="pass">
+<br><br>
+<input type="submit" value="Submit">
+</form>
+
 <script src='//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js'></script>
 <script src="socket.io/socket.io.js"></script>
 <script>
@@ -12,8 +23,19 @@ io.emit('ready')
 
 // Listen for the talk event.
 io.on('talk', function(data) {
+	if (typeof data.client_status !== 'undefined') {
+		alert (data.client_status);
+		setTimeout(function(){ io.emit('client_status') }, 1000);
+	}
   //  alert(data.message)
-})  
+})
+
+$("#login").submit(function( event ) {
+	event.preventDefault();
+	var user = $("#login :input[name='user']").val(); 
+	var pass = $("#login :input[name='pass']").val();
+	io.emit('login', {"user":user, "pass":pass}); 
+});
 
 </script>
 </body></html>
