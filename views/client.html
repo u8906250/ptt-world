@@ -3,7 +3,7 @@
 </head><body>
 
 login ptt.cc
-<form id="login">
+<form id="login" style="display:none;" method="post">
 username:<br>
 <input type="text" name="user">
 <br>
@@ -13,7 +13,7 @@ password:<br>
 <input type="submit" value="Login">
 </form>
 
-<form id="logout" style="display:none;">
+<form id="isin" style="display:none;">
 Username:<br>
 <div id="user"></div>
 <input type="submit" value="Logout">
@@ -25,10 +25,24 @@ Username:<br>
 <script>
 io = io.connect()
 
-// Emit ready event.
 io.emit('ready') 
 
-// Listen for the talk event.
+var isin_show = function(){
+	$("#user").text($("#login :input[name='user']").val());
+	$("#login :input").prop('disabled',false);
+	$("#login :input[name='pass']").val('');
+	$("#login").hide();
+	$("#isin").show();
+}
+
+var login_show = function(){
+	$("#isin :input").prop('disabled',false);
+	$("#isin").hide();
+	$("#login :input[name='user']").val('');
+	$("#login :input[name='pass']").val('');
+	$("#login").show();
+}
+
 io.on('talk', function(data) {
 	if (typeof data.client_status !== 'undefined') {
 		switch (data.client_status) {
@@ -38,25 +52,29 @@ io.on('talk', function(data) {
 				$("#login :input[name='pass']").val('')
 				break;
 			case 0:
-				$("#logout :input").prop('disabled',false);
-				$("#logout").hide();
-				$("#login").show();
+				login_show();
 				break;
 			case 6:
-				$("#user").text($("#login :input[name='user']").val());
-				$("#login :input").prop('disabled',false);
-				$("#login :input[name='user']").val('')
-				$("#login :input[name='pass']").val('')
-				$("#login").hide();
-				$("#logout").show();
+				isin_show();
 				break;
 			default:
 				setTimeout(function(){ io.emit('client_status') }, 1000);
 				break;
 		}
 	}
-  //  alert(data.message)
+	if (typeof data.message !== 'undefined') {
+ 		alert(data.message);
+	}
 })
+io.on('session', function(data) {
+	if (data.client_idx !== undefined) {
+		$("#login :input[name='user']").val(data.user);
+		isin_show();
+		io.emit('client_status');
+	} else {
+		login_show();
+	}
+});
 
 $("#login").submit(function( event ) {
 	event.preventDefault();
@@ -67,10 +85,10 @@ $("#login").submit(function( event ) {
 	setTimeout(function(){ io.emit('client_status') }, 5000);
 });
 
-$("#logout").submit(function( event ) {
+$("#isin").submit(function( event ) {
 	event.preventDefault();
 	io.emit('logout'); 
-	$("#logout :input").prop('disabled',true);
+	$("#isin :input").prop('disabled',true);
 	setTimeout(function(){ io.emit('client_status') }, 5000);
 });
 

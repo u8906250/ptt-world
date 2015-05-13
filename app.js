@@ -17,33 +17,39 @@ var get_free_client = function() {
 	return -1;
 }
 
-var client = {"user":'',"status":0};
-
 app.io.route('ready', function(req) {
-	req.io.emit('talk', {
-		message: 'io event from an io route on the server'
-	});
+	req.io.emit('session', req.session);
 });
 
 app.io.route('client_status', function(req) {
-	req.io.emit('talk', {client_status: client.status});
+	if (req.session.client_idx !== undefined) {
+		client = clients[req.session.client_idx];
+		req.io.emit('talk', {client_status: client.status});
+	} else {
+		req.io.emit('talk', {client_status: 0});
+	}
 });
 
 app.io.route('login', function(req) {
 	if (req.session.client_idx === undefined) {
 		client_idx = get_free_client();
 		if (client_idx == -1) {
-		//TODO
+			req.io.emit('talk', {
+				message: 'out of ptt client'
+			});
+			return;
 		} else {
 			client = clients[client_idx];
 			req.session.client_idx = client_idx;
-			if (client.status == 0) {
-				client.user = req.data.user;
-				ptt.login (client, req.data.pass);
-				req.session.user = req.data.user;
-				req.session.save();
-			}
 		}
+	} else {
+		client = clients[req.session.client_idx];
+	}
+	if (client.status == 0) {
+		client.user = req.data.user;
+		ptt.login (client, req.data.pass);
+		req.session.user = req.data.user;
+		req.session.save();
 	}
 });
 
@@ -55,12 +61,12 @@ app.io.route('logout', function(req) {
 		}
 		delete clients[req.session.client_idx];
 		delete req.session.client_idx;
+		req.session.save();
 	}
 });
 
 
 app.get('/', function(req, res) {
-	
 	if (req.session.loginDate === undefined) {
 		req.session.loginDate = new Date().toString();
 	}
