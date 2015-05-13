@@ -10,8 +10,15 @@ username:<br>
 password:<br>
 <input type="password" name="pass">
 <br><br>
-<input type="submit" value="Submit">
+<input type="submit" value="Login">
 </form>
+
+<form id="logout" style="display:none;">
+Username:<br>
+<div id="user"></div>
+<input type="submit" value="Logout">
+</form>
+
 
 <script src='//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js'></script>
 <script src="socket.io/socket.io.js"></script>
@@ -24,8 +31,29 @@ io.emit('ready')
 // Listen for the talk event.
 io.on('talk', function(data) {
 	if (typeof data.client_status !== 'undefined') {
-		alert (data.client_status);
-		setTimeout(function(){ io.emit('client_status') }, 1000);
+		switch (data.client_status) {
+			case -1:
+				$("#login :input").prop('disabled',false);
+				$("#login :input[name='user']").val('')
+				$("#login :input[name='pass']").val('')
+				break;
+			case 0:
+				$("#logout :input").prop('disabled',false);
+				$("#logout").hide();
+				$("#login").show();
+				break;
+			case 6:
+				$("#user").text($("#login :input[name='user']").val());
+				$("#login :input").prop('disabled',false);
+				$("#login :input[name='user']").val('')
+				$("#login :input[name='pass']").val('')
+				$("#login").hide();
+				$("#logout").show();
+				break;
+			default:
+				setTimeout(function(){ io.emit('client_status') }, 1000);
+				break;
+		}
 	}
   //  alert(data.message)
 })
@@ -35,6 +63,15 @@ $("#login").submit(function( event ) {
 	var user = $("#login :input[name='user']").val(); 
 	var pass = $("#login :input[name='pass']").val();
 	io.emit('login', {"user":user, "pass":pass}); 
+	$("#login :input").prop('disabled',true);
+	setTimeout(function(){ io.emit('client_status') }, 5000);
+});
+
+$("#logout").submit(function( event ) {
+	event.preventDefault();
+	io.emit('logout'); 
+	$("#logout :input").prop('disabled',true);
+	setTimeout(function(){ io.emit('client_status') }, 5000);
 });
 
 </script>
