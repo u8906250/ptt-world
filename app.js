@@ -1,4 +1,6 @@
 var express = require('express.io');
+var Convert = require('ansi-to-html');
+var convert = new Convert();
 var ptt = require('./lib/ptt.js');
 
 var app = express().http().io();
@@ -24,9 +26,31 @@ app.io.route('ready', function(req) {
 app.io.route('client_status', function(req) {
 	if (req.session.client_idx !== undefined) {
 		client = clients[req.session.client_idx];
-		req.io.emit('talk', {client_status: client.status});
+		if (client !== undefined) {
+			req.io.emit('talk', {client_status: client.status});
+		} else {
+			req.io.emit('talk', {client_status: 0});
+		}
 	} else {
 		req.io.emit('talk', {client_status: 0});
+	}
+});
+
+app.io.route('friends', function(req) {
+	if (req.session.client_idx !== undefined) {
+		client = clients[req.session.client_idx];
+		if (client !== undefined && client.status == 6) {
+			ptt.friends(client);
+		}
+	}
+});
+
+app.io.route('write', function(req) {
+	if (req.session.client_idx !== undefined) {
+		client = clients[req.session.client_idx];
+		if (client !== undefined && client.status == 6) {
+			ptt.write(client, req.data.char);
+		}
 	}
 });
 
@@ -40,15 +64,27 @@ app.io.route('login', function(req) {
 			return;
 		} else {
 			client = clients[client_idx];
-			req.session.client_idx = client_idx;
 		}
 	} else {
 		client = clients[req.session.client_idx];
 	}
-	if (client.status == 0) {
+	if (client !== undefined && client.status == 0) {
 		client.user = req.data.user;
+		client.datacb = function(data) {
+			//console.log(convert.toHtml(data.toString()));
+			console.log(data.toString());
+			req.io.emit('talk', {content: convert.toHtml(data.toString())});
+		};
+		client.endcb = function() {
+			if (req.session.client_idx !== undefined) {
+				delete clients[req.session.client_idx];
+				delete req.session.client_idx;
+				req.session.save();
+			}
+		};
 		ptt.login (client, req.data.pass);
 		req.session.user = req.data.user;
+		req.session.client_idx = client_idx;
 		req.session.save();
 	}
 });
@@ -56,10 +92,12 @@ app.io.route('login', function(req) {
 app.io.route('logout', function(req) {
 	if (req.session.client_idx !== undefined) {
 		client = clients[req.session.client_idx];
-		if (client.status == 6) {
-			ptt.logout (client);
+		if (client !== undefined) {
+			if (client.status == 6) {
+				ptt.logout (client);
+			}
+			delete clients[req.session.client_idx];
 		}
-		delete clients[req.session.client_idx];
 		delete req.session.client_idx;
 		req.session.save();
 	}

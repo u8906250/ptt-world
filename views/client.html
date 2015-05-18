@@ -19,6 +19,7 @@ Username:<br>
 <input type="submit" value="Logout">
 </form>
 
+<div id="content" tabindex="0"></div>
 
 <script src='//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js'></script>
 <script src="socket.io/socket.io.js"></script>
@@ -56,6 +57,7 @@ io.on('talk', function(data) {
 				break;
 			case 6:
 				isin_show();
+				io.emit('friends');
 				break;
 			default:
 				setTimeout(function(){ io.emit('client_status') }, 1000);
@@ -64,6 +66,9 @@ io.on('talk', function(data) {
 	}
 	if (typeof data.message !== 'undefined') {
  		alert(data.message);
+	}
+	if (typeof data.content !== 'undefined') {
+		$("#content").html(data.content);
 	}
 })
 io.on('session', function(data) {
@@ -90,6 +95,29 @@ $("#isin").submit(function( event ) {
 	io.emit('logout'); 
 	$("#isin :input").prop('disabled',true);
 	setTimeout(function(){ io.emit('client_status') }, 5000);
+});
+
+$("#content").on("keydown",function(event) {
+	switch (event.which) {
+		case 13:
+			io.emit('write', {"char":'\r'}); 
+			break;
+		case 37:
+			io.emit('write', {"char":'\033OD'}); 
+			break;
+		case 38:
+			io.emit('write', {"char":'\033OA'}); 
+			break;
+		case 39:
+			io.emit('write', {"char":'\033OC'}); 
+			break;
+		case 40:
+			io.emit('write', {"char":'\033OB'}); 
+			break;
+		default:
+			io.emit('write', {"char": String.fromCharCode(event.keyCode)}); 
+			break;
+	}
 });
 
 </script>
