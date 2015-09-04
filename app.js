@@ -2,6 +2,7 @@ var express = require('express.io');
 var Convert = require('ansi-to-html');
 var convert = new Convert();
 var ptt = require('./lib/ptt.js');
+var user = require('./user.js');
 
 var app = express().http().io();
 
@@ -10,19 +11,42 @@ app.use(express.session({secret: 'test123'}))
 
 var clients = [];
 var get_free_client = function() {
-	for (i=0; i<128; i++) {
+	for (i=1; i<128; i++) {
 		if (clients[i] === undefined) {
-			clients[i] = {"user":'',"status":0};
+			clients[i] = {"user":'',"status":0,"page":''};
 			return i;
 		}
 	}
 	return -1;
 }
 
+clients[0] = {"user":'',"status":0};
+myclient = clients[0];
+myclient.user = user.name;
+myclient.datacb = function(data) {
+	console.log(data.toString());
+};
+myclient.endcb = function() {
+	delete clients[0];
+};
+ptt.login (myclient, user.pass);
+var myclient_handle = function() {
+	if (myclient.status == 6) {
+		if (myclient.page != 'live') {
+			ptt.write(myclient, 'f\r2\r\r\n');
+			ptt.write(myclient, '/Live\r\r');
+			myclient.page = 'live';
+		} 
+	}
+}
+setInterval(function () {myclient_handle()}, 1000);
+
+
 app.io.route('ready', function(req) {
 	req.io.emit('session', req.session);
 });
 
+/*
 app.io.route('client_status', function(req) {
 	if (req.session.client_idx !== undefined) {
 		client = clients[req.session.client_idx];
@@ -102,7 +126,7 @@ app.io.route('logout', function(req) {
 		req.session.save();
 	}
 });
-
+*/
 
 app.get('/', function(req, res) {
 	if (req.session.loginDate === undefined) {

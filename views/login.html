@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<head><meta charset='UTF-8'>
+</head><body>
+
+login ptt.cc
+<form id="login" style="display:none;" method="post">
+username:<br>
+<input type="text" name="user">
+<br>
+password:<br>
+<input type="password" name="pass">
+<br><br>
+<input type="submit" value="Login">
+</form>
+
+<form id="isin" style="display:none;">
+Username:<br>
+<div id="user"></div>
+<input type="submit" value="Logout">
+</form>
+
+<div id="content" tabindex="0"></div>
+
+<script src='//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js'></script>
+<script src="socket.io/socket.io.js"></script>
+<script>
+io = io.connect()
+
+io.emit('ready') 
+
+var isin_show = function(){
+	$("#user").text($("#login :input[name='user']").val());
+	$("#login :input").prop('disabled',false);
+	$("#login :input[name='pass']").val('');
+	$("#login").hide();
+	$("#isin").show();
+}
+
+var login_show = function(){
+	$("#isin :input").prop('disabled',false);
+	$("#isin").hide();
+	$("#login :input[name='user']").val('');
+	$("#login :input[name='pass']").val('');
+	$("#login").show();
+}
+
+io.on('talk', function(data) {
+	if (typeof data.client_status !== 'undefined') {
+		switch (data.client_status) {
+			case -1:
+				$("#login :input").prop('disabled',false);
+				$("#login :input[name='user']").val('')
+				$("#login :input[name='pass']").val('')
+				break;
+			case 0:
+				login_show();
+				break;
+			case 6:
+				isin_show();
+				io.emit('friends');
+				break;
+			default:
+				setTimeout(function(){ io.emit('client_status') }, 1000);
+				break;
+		}
+	}
+	if (typeof data.message !== 'undefined') {
+ 		alert(data.message);
+	}
+	if (typeof data.content !== 'undefined') {
+		$("#content").html(data.content);
+	}
+})
+io.on('session', function(data) {
+	if (data.client_idx !== undefined) {
+		$("#login :input[name='user']").val(data.user);
+		isin_show();
+		io.emit('client_status');
+	} else {
+		login_show();
+	}
+});
+
+$("#login").submit(function( event ) {
+	event.preventDefault();
+	var user = $("#login :input[name='user']").val(); 
+	var pass = $("#login :input[name='pass']").val();
+	io.emit('login', {"user":user, "pass":pass}); 
+	$("#login :input").prop('disabled',true);
+	setTimeout(function(){ io.emit('client_status') }, 5000);
+});
+
+$("#isin").submit(function( event ) {
+	event.preventDefault();
+	io.emit('logout'); 
+	$("#isin :input").prop('disabled',true);
+	setTimeout(function(){ io.emit('client_status') }, 5000);
+});
+
+$("#content").on("keydown",function(event) {
+	switch (event.which) {
+		case 13:
+			io.emit('write', {"char":'\r'}); 
+			break;
+		case 37:
+			io.emit('write', {"char":'\033OD'}); 
+			break;
+		case 38:
+			io.emit('write', {"char":'\033OA'}); 
+			break;
+		case 39:
+			io.emit('write', {"char":'\033OC'}); 
+			break;
+		case 40:
+			io.emit('write', {"char":'\033OB'}); 
+			break;
+		default:
+			io.emit('write', {"char": String.fromCharCode(event.keyCode)}); 
+			break;
+	}
+});
+
+</script>
+</body></html>
